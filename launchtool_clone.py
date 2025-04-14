@@ -1,3 +1,4 @@
+
 import streamlit as st
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
@@ -16,11 +17,10 @@ from spl.token.instructions import (
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from base58 import b58decode
 
-st.title("🪙 Solana Token Creator — FINAL FINAL FINAL")
+st.title("🪙 Solana Token Creator — FINAL WORKING COPY")
 
 client = Client("https://api.devnet.solana.com")
 
-# --- Wallet connection ---
 st.subheader("Connect Wallet")
 private_key_input = st.text_area("Enter your private key (base58 or array):", height=100)
 
@@ -43,7 +43,6 @@ else:
 
 payer_pubkey = payer.pubkey()
 
-# --- Token details ---
 st.subheader("Token Details")
 name = st.text_input("Token Name")
 symbol = st.text_input("Token Symbol")
@@ -63,7 +62,6 @@ if st.button("Create Token"):
 
         instructions = []
 
-        # ✅ Create Mint Account
         instructions.append(
             create_account(
                 CreateAccountParams(
@@ -76,7 +74,6 @@ if st.button("Create Token"):
             )
         )
 
-        # ✅ Initialize Mint
         instructions.append(
             initialize_mint(
                 InitializeMintParams(
@@ -89,7 +86,6 @@ if st.button("Create Token"):
             )
         )
 
-        # ✅ Create ATA
         instructions.append(
             create_associated_token_account(
                 payer=payer_pubkey,
@@ -98,7 +94,6 @@ if st.button("Create Token"):
             )
         )
 
-        # ✅ Mint To ATA
         amount = supply * (10 ** decimals)
         instructions.append(
             mint_to(
@@ -106,7 +101,7 @@ if st.button("Create Token"):
                     program_id=TOKEN_PROGRAM_ID,
                     mint=mint_pubkey,
                     dest=ata,
-                    authority=payer_pubkey,
+                    authority=payer,
                     amount=amount
                 )
             )
