@@ -9,13 +9,14 @@ from solana.rpc.api import Client
 from spl.token.instructions import (
     create_associated_token_account,
     mint_to,
+    MintToParams,
     initialize_mint,
     InitializeMintParams
 )
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from base58 import b58decode
 
-st.title("🪙 Solana Token Creator — FINAL FINAL FIXED")
+st.title("🪙 Solana Token Creator — FINAL FINAL FINAL")
 
 client = Client("https://api.devnet.solana.com")
 
@@ -62,7 +63,7 @@ if st.button("Create Token"):
 
         instructions = []
 
-        # ✅ Fixed CreateAccountParams
+        # ✅ Create Mint Account
         instructions.append(
             create_account(
                 CreateAccountParams(
@@ -75,16 +76,20 @@ if st.button("Create Token"):
             )
         )
 
-        # ✅ Use InitializeMintParams
-        params = InitializeMintParams(
-            program_id=TOKEN_PROGRAM_ID,
-            mint=mint_pubkey,
-            decimals=decimals,
-            mint_authority=payer_pubkey,
-            freeze_authority=payer_pubkey
+        # ✅ Initialize Mint
+        instructions.append(
+            initialize_mint(
+                InitializeMintParams(
+                    program_id=TOKEN_PROGRAM_ID,
+                    mint=mint_pubkey,
+                    decimals=decimals,
+                    mint_authority=payer_pubkey,
+                    freeze_authority=payer_pubkey
+                )
+            )
         )
-        instructions.append(initialize_mint(params))
 
+        # ✅ Create ATA
         instructions.append(
             create_associated_token_account(
                 payer=payer_pubkey,
@@ -93,13 +98,17 @@ if st.button("Create Token"):
             )
         )
 
+        # ✅ Mint To ATA
         amount = supply * (10 ** decimals)
         instructions.append(
             mint_to(
-                mint=mint_pubkey,
-                dest=ata,
-                authority=payer_pubkey,
-                amount=amount
+                MintToParams(
+                    program_id=TOKEN_PROGRAM_ID,
+                    mint=mint_pubkey,
+                    dest=ata,
+                    authority=payer_pubkey,
+                    amount=amount
+                )
             )
         )
 
