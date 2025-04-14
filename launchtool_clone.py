@@ -9,12 +9,13 @@ from solana.rpc.api import Client
 from spl.token.instructions import (
     create_associated_token_account,
     mint_to,
-    initialize_mint
+    initialize_mint,
+    InitializeMintParams
 )
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from base58 import b58decode
 
-st.title("🪙 Solana Token Creator — FINAL Streamlit Cloud Version")
+st.title("🪙 Solana Token Creator — FINAL FINAL FIXED")
 
 client = Client("https://api.devnet.solana.com")
 
@@ -74,14 +75,15 @@ if st.button("Create Token"):
             )
         )
 
-        instructions.append(
-            initialize_mint(
-                mint=mint_pubkey,
-                decimals=decimals,
-                mint_authority=payer_pubkey,
-                freeze_authority=payer_pubkey,
-            )
+        # ✅ Use InitializeMintParams
+        params = InitializeMintParams(
+            program_id=TOKEN_PROGRAM_ID,
+            mint=mint_pubkey,
+            decimals=decimals,
+            mint_authority=payer_pubkey,
+            freeze_authority=payer_pubkey
         )
+        instructions.append(initialize_mint(params))
 
         instructions.append(
             create_associated_token_account(
