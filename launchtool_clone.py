@@ -4,12 +4,17 @@ from solders.pubkey import Pubkey
 from solders.instruction import Instruction
 from solders.message import Message
 from solders.transaction import Transaction
+from solders.system_program import create_account, CreateAccountParams
 from solana.rpc.api import Client
-from spl.token.instructions import create_associated_token_account, mint_to, initialize_mint
+from spl.token.instructions import (
+    create_associated_token_account,
+    mint_to,
+    initialize_mint
+)
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from base58 import b58decode
 
-st.title("🪙 Create and Mint Solana Token — Final Minimal Example")
+st.title("🪙 Solana Token Creator — Final Streamlit Cloud Version")
 
 client = Client("https://api.devnet.solana.com")
 
@@ -36,25 +41,19 @@ else:
 
 payer_pubkey = payer.pubkey()
 
-# --- Token setup ---
-st.subheader("Token Setup")
+# --- Token details ---
+st.subheader("Token Details")
 name = st.text_input("Token Name")
-symbol = st.text_input("Symbol")
+symbol = st.text_input("Token Symbol")
 supply = st.number_input("Total Supply", min_value=1, value=1000)
 decimals = st.slider("Decimals", 0, 9, 2)
 
 if st.button("Create Token"):
     try:
-        st.info("Creating Mint...")
         mint = Keypair()
         mint_pubkey = mint.pubkey()
 
-        mint_account_info = client.get_minimum_balance_for_rent_exemption(82)
-        if mint_account_info.value is None:
-            st.error("Failed to fetch rent exemption amount.")
-            st.stop()
-
-        lamports = mint_account_info.value
+        rent = client.get_minimum_balance_for_rent_exemption(82).value
         ata = Pubkey.find_program_address(
             [bytes(payer_pubkey), bytes(TOKEN_PROGRAM_ID), bytes(mint_pubkey)],
             ASSOCIATED_TOKEN_PROGRAM_ID
@@ -63,20 +62,19 @@ if st.button("Create Token"):
         instructions = []
 
         # Create mint account
-        from solana.system_program import create_account, CreateAccountParams
         instructions.append(
             create_account(
                 CreateAccountParams(
                     from_pubkey=payer_pubkey,
                     new_account_pubkey=mint_pubkey,
-                    lamports=lamports,
+                    lamports=rent,
                     space=82,
                     program_id=TOKEN_PROGRAM_ID
                 )
             )
         )
 
-        # Initialize mint
+        # Initialize the mint
         instructions.append(
             initialize_mint(
                 mint=mint_pubkey,
@@ -95,7 +93,7 @@ if st.button("Create Token"):
             )
         )
 
-        # Mint tokens
+        # Mint tokens to ATA
         amount = supply * (10 ** decimals)
         instructions.append(
             mint_to(
@@ -107,12 +105,13 @@ if st.button("Create Token"):
         )
 
         message = Message(instructions=instructions, payer=payer_pubkey)
-        tx = Transaction(message=message, signatures=[payer])
-        response = client.send_transaction(tx, payer, mint)
+        tx = Transaction(message=message, signatures=[])
+        tx.sign([payer, mint])
+        client.send_transaction(tx, payer, mint)
 
         st.success("🎉 Token created and minted successfully!")
-        st.write("Mint Address:", str(mint_pubkey))
-        st.write("Explorer:", f"https://explorer.solana.com/address/{mint_pubkey}?cluster=devnet")
+        st.write("🧾 Mint Address:", str(mint_pubkey))
+        st.write("🔗 [View on Solana Explorer](https://explorer.solana.com/address/" + str(mint_pubkey) + "?cluster=devnet)")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
