@@ -1,7 +1,6 @@
-
 import streamlit as st
 from solders.keypair import Keypair
-from solana.pubkey import Pubkey as SolanaPubkey
+from solders.pubkey import Pubkey
 from solana.rpc.api import Client
 from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.token.client import Token
@@ -9,10 +8,11 @@ from metadata_generator import create_metadata_json
 from ipfs_helper import upload_to_ipfs
 from base58 import b58decode
 
-st.title("🪙 LaunchTool Clone — Cloud Compatible")
+st.title("🪙 LaunchTool — Streamlit Cloud Compatible")
 
 client = Client("https://api.devnet.solana.com")
 
+# --- Wallet connection ---
 st.subheader("Connect Wallet")
 private_key_input = st.text_area("Enter your private key (base58 or array):", height=100)
 
@@ -33,8 +33,10 @@ else:
     st.warning("Paste your private key to continue.")
     st.stop()
 
-pubkey = SolanaPubkey.from_bytes(bytes(keypair.pubkey()))
+# ✅ Use solders.Pubkey directly
+pubkey = keypair.pubkey()
 
+# --- Token setup ---
 st.subheader("Token Details")
 name = st.text_input("Token Name")
 symbol = st.text_input("Token Symbol")
@@ -44,6 +46,7 @@ desc = st.text_area("Description")
 website = st.text_input("Website (optional)")
 logo = st.file_uploader("Token Logo (optional)", type=["png", "jpg", "jpeg"])
 
+# --- Create token ---
 if st.button("Create Token"):
     if not name or not symbol:
         st.error("Please enter both a name and symbol.")
@@ -52,32 +55,32 @@ if st.button("Create Token"):
     try:
         st.info("Creating token mint...")
         token = Token.create_mint(
-            client,
-            keypair,
-            pubkey,
-            pubkey,
-            decimals,
-            TOKEN_PROGRAM_ID,
+            client=client,
+            payer=keypair,
+            mint_authority=pubkey,
+            freeze_authority=pubkey,
+            decimals=decimals,
+            program_id=TOKEN_PROGRAM_ID,
         )
 
-        st.info("Creating ATA...")
+        st.info("Creating Associated Token Account...")
         ata = token.create_associated_token_account(pubkey)
 
         st.info("Minting tokens...")
         amount = int(supply * 10 ** decimals)
         token.mint_to(
-            ata,
-            keypair,
-            amount.to_solders(),
+            dest=ata,
+            mint_authority=keypair,
+            amount=amount.to_solders(),
             signer_pubkey=pubkey
         )
 
-        st.info("Uploading metadata...")
+        st.info("Uploading metadata to IPFS...")
         metadata_json = create_metadata_json(name, symbol, desc, logo, website)
         metadata_uri = upload_to_ipfs(metadata_json)
 
-        st.success("🎉 Token Created!")
-        st.write("🧾 Mint Address:", str(token.pubkey))
+        st.success("🎉 Token Created Successfully!")
+        st.write("🧾 Mint Address:", token.pubkey)
         st.write("🌐 Metadata URI:", metadata_uri)
 
     except Exception as e:
