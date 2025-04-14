@@ -14,7 +14,7 @@ from spl.token.instructions import (
 from spl.token.constants import TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
 from base58 import b58decode
 
-st.title("🪙 Solana Token Creator — Final Streamlit Cloud Version")
+st.title("🪙 Solana Token Creator — FINAL Streamlit Cloud Version")
 
 client = Client("https://api.devnet.solana.com")
 
@@ -61,20 +61,19 @@ if st.button("Create Token"):
 
         instructions = []
 
-        # Create mint account
+        # ✅ Fixed CreateAccountParams
         instructions.append(
             create_account(
                 CreateAccountParams(
                     from_pubkey=payer_pubkey,
-                    new_account_pubkey=mint_pubkey,
+                    to_pubkey=mint_pubkey,
                     lamports=rent,
                     space=82,
-                    program_id=TOKEN_PROGRAM_ID
+                    owner=TOKEN_PROGRAM_ID
                 )
             )
         )
 
-        # Initialize the mint
         instructions.append(
             initialize_mint(
                 mint=mint_pubkey,
@@ -84,7 +83,6 @@ if st.button("Create Token"):
             )
         )
 
-        # Create ATA
         instructions.append(
             create_associated_token_account(
                 payer=payer_pubkey,
@@ -93,7 +91,6 @@ if st.button("Create Token"):
             )
         )
 
-        # Mint tokens to ATA
         amount = supply * (10 ** decimals)
         instructions.append(
             mint_to(
